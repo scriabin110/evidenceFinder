@@ -7,9 +7,9 @@ from langchain_core.tools import Tool
 
 import os
 
-os.environ["OPENAI_API_KEY"] = st.secrets('openAI_api_id')    #'YOUR_OPENAI_API_KEY'
-os.environ["GOOGLE_CSE_ID"] = st.secrets('cse_id')    #'YOUR_CSE_ID'
-os.environ["GOOGLE_API_KEY"] = st.secrets('Google_api_key')    #'YOUR_GOOGLE_API_KEY'
+os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_KEY'
+os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
+os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
 
 # OpenAIのモデルのインスタンスを作成
 llm = ChatOpenAI(model_name="gpt-4", temperature=0.75)
