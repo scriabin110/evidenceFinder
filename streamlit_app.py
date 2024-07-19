@@ -92,8 +92,9 @@ def main():
     if st.button("検証"):
         if text_1:
             with st.spinner("検証中..."):
-                if len(text_1) < 200:
-                    query = chain.invoke({"text": text_1})
+                if len(text_1) > 200:
+                    st.session_state.disabled = True
+                query = chain.invoke({"text": text_1})
                 query = remove_quotes(query)
 
                 st.write("生成された検索クエリ:", query)
