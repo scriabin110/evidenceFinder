@@ -89,11 +89,12 @@ def main():
 
     text_1 = st.text_area("エビデンスチェックしたいテキストを入力してください。")
 
-    if st.button("検証"):
+    # ボタンの状態を決定
+    button_disabled = len(text_1) > 200
+
+    if st.button("検証", disabled=button_disabled):
         if text_1:
             with st.spinner("検証中..."):
-                if len(text_1) > 200:
-                    st.session_state.disabled = True
                 query = chain.invoke({"text": text_1})
                 query = remove_quotes(query)
 
@@ -113,6 +114,9 @@ def main():
                 st.write("検証結果:", result)
         else:
             st.warning("テキストを入力してください。")
+    
+    if button_disabled:
+        st.warning("テキストは200文字以内にしてください。")
 
 if __name__ == "__main__":
     main()
