@@ -72,6 +72,7 @@ template_2 = """
 \n\n
 #元原稿
 「{text}」
+\n
 #エビデンス
 「{snippets}」
 """
@@ -91,7 +92,8 @@ def main():
     if st.button("検証"):
         if text_1:
             with st.spinner("検証中..."):
-                query = chain.invoke({"text": text_1})
+                if len(text_1) < 200:
+                    query = chain.invoke({"text": text_1})
                 query = remove_quotes(query)
 
                 st.write("生成された検索クエリ:", query)
