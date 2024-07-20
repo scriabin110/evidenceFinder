@@ -88,6 +88,7 @@ def main():
     st.title("エビデンス検証アプリ")
 
     text_1 = st.text_area("エビデンスチェックしたいテキストを入力してください。")
+    st.write("文字数  :", len(text_1))
 
     # ボタンの状態を決定
     button_disabled = len(text_1) > 200
