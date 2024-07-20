@@ -3,8 +3,8 @@ Find evidence and check accuracy of text information using Google Search.
 
 
 ## 環境構築
-
-
+- pythonをインストールしておく
+https://www.python.jp/install/windows/install.html
 
 
 ============================================================
