@@ -91,6 +91,43 @@ def get_h_tags(url):
     except:
         return []
 
+def get_h_tags_with_content(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        h_tags = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        return [f"{tag.name}: {tag.get_text()}" for tag in h_tags]
+    except:
+        return []
+
+template_3 = """
+# 命令書
+与えられた検証結果と検索結果から、最も重要なエビデンスのURLを1つ選び、そのページのhタグの中から、
+最も関連性の高いhタグを特定してください。
+
+# ルール
+- 検証結果に最も影響を与えたURLを1つ選択すること。
+- 選択したURLのhタグの中から、検証結果に最も関連する情報が含まれていそうなhタグを1つ選ぶこと。
+- 回答は以下の形式で行うこと：
+  最も重要なURL: [選択したURL]
+  最も関連性の高いhタグ: [選択したhタグ]
+  理由: [選択した理由を1文で]
+
+# 検証結果
+{result}
+
+# 検索結果
+{snippets}
+
+# 選択したURLのhタグ
+{h_tags}
+"""
+
+prompt_3 = ChatPromptTemplate.from_messages([
+    ("system", "あなたは優秀なWeb分析者です。"),
+    ("user", template_3)
+])
+
 def main():
     st.title("エビデンス検証アプリ")
 
@@ -151,6 +188,23 @@ def main():
 
             if st.session_state.result:
                 st.write("検証結果:", st.session_state.result)
+
+                # 重要なURLとhタグの分析
+                with st.spinner("重要なエビデンスを分析中..."):
+                    chain_3 = prompt_3 | llm | output_parser
+                    all_h_tags = {result['link']: get_h_tags_with_content(result['link']) for result in st.session_state.evidence}
+                    important_evidence = chain_3.invoke({
+                        "result": st.session_state.result,
+                        "snippets": snippets_with_links,
+                        "h_tags": all_h_tags
+                    })
+                    
+                    st.write("重要なエビデンス:")
+                    lines = important_evidence.split('\n')
+                    for line in lines:
+                        if line.strip():
+                            key, value = line.split(':', 1)
+                            st.write(f"**{key.strip()}:** {value.strip()}")
 
     if button_disabled:
         st.warning("テキストは200文字以内にしてください。")
