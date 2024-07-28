@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 from langchain_google_community import GoogleSearchAPIWrapper # 240728_memoこれに変更
 from langchain_core.tools import Tool
 import os
+import re
 import requests
 from bs4 import BeautifulSoup
 
@@ -138,6 +139,12 @@ prompt_3 = ChatPromptTemplate.from_messages([
     ("user", template_3)
 ])
 
+def create_anchor_link(url, h_tag):
+    h_number = h_tag.split(':')[0]
+    h_text = h_tag.split(':')[1].strip()
+    anchor = re.sub(r'\W+', '-', h_text.lower())
+    return f"{url}#{h_number}-{anchor}"
+
 def main():
     st.title("エビデンス検証アプリ")
 
@@ -214,7 +221,14 @@ def main():
                     for line in lines:
                         if line.strip():
                             key, value = line.split(':', 1)
-                            st.write(f"**{key.strip()}:** {value.strip()}")
+                            if key.strip() == "最も重要なURL":
+                                url = value.strip()
+                            elif key.strip() == "最も関連性の高いhタグ":
+                                h_tag = value.strip()
+                                anchor_link = create_anchor_link(url, h_tag)
+                                st.write(f"**{key.strip()}:** [{h_tag}]({anchor_link})")
+                            else:
+                                st.write(f"**{key.strip()}:** {value.strip()}")
 
     if button_disabled:
         st.warning("テキストは200文字以内にしてください。")
