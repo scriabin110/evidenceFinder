@@ -9,8 +9,8 @@ import requests
 from bs4 import BeautifulSoup
 
 # 今後使う用に残しておく
-'''
-ここから
+
+#ここから
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,11 +18,10 @@ load_dotenv()
 os.environ.get("OPENAI_API_KEY")
 os.environ.get("GOOGLE_CSE_ID")
 os.environ.get("GOOGLE_API_KEY")
-ここまで
-'''
-os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_KEY'
-os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
-os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
+
+#os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_KEY'
+#os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
+#os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
 
 llm = ChatOpenAI(model_name="gpt-4", temperature=0.75)
 
