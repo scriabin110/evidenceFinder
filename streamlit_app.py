@@ -2,7 +2,8 @@ import streamlit as st
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain_community.utilities import GoogleSearchAPIWrapper
+#from langchain_community.utilities import GoogleSearchAPIWrapper
+from langchain_google_community import GoogleSearchAPIWrapper # 240728_memoこれに変更
 from langchain_core.tools import Tool
 import os
 import requests
