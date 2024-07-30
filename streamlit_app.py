@@ -12,34 +12,19 @@ os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_
 os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
 os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
 
-llm = ChatOpenAI(model_name="gpt-4o", max_tokens=None, temperature=0.75)
-
-template_0 = """
-# 命令書
-与えられた元原稿に予算や相場などの数値情報が含まれているかどうかを判断してください。
-
-# ルール
-- 予算、相場、税率、金額、割合などの具体的な数値情報を探してください。
-- 判断結果は以下のいずれかで回答してください：
-  - 数値情報あり：「エビデンスが必要です」
-  - 数値情報なし：「エビデンス不要と判断しました」
-
-# 元原稿
-「{text}」
-"""
-
-prompt_0 = ChatPromptTemplate.from_messages([
-    ("system", "あなたはテキスト分析の専門家です。"),
-    ("user", template_0)
-])
+llm = ChatOpenAI(model_name="gpt-4", temperature=0.75)
 
 template_1 = """
 # 命令書
 下記の元原稿の真偽を検証すべく、エビデンスとなるWebページを検索したい。適切な検索キーワードを5組教えて。
 
 # ルール
-- 検索キーワードは2単語または3単語とする。
+- 検索キーワードは原則として3単語とする。2単語または4単語でも構わない。
+- 下記のコツを活かして検索クエリを生成すること。
 - 5つの異なる検索クエリを生成し、番号を付けて列挙すること。
+
+## 検索クエリのコツ
+[コツの内容は省略]
 
 #元原稿
 「{text}」
@@ -51,13 +36,10 @@ prompt_1 = ChatPromptTemplate.from_messages([
 ])
 
 output_parser = StrOutputParser()
-chain_0 = prompt_0 | llm | output_parser
-chain_1 = prompt_1 | llm | output_parser
+chain = prompt_1 | llm | output_parser
 
-def remove_quotes_if_needed(string):
-    if string.startswith('"') and string.endswith('"'):
-        return string[1:-1]
-    return string
+def remove_quotes(string):
+    return string.replace('"', '')
 
 search = GoogleSearchAPIWrapper()
 
@@ -164,20 +146,11 @@ def main():
     if st.button("検証", disabled=button_disabled):
         if text_1:
             st.session_state.text_1 = text_1
-            with st.spinner("テキストを分析中..."):
-                evidence_needed = chain_0.invoke({"text": text_1})
-                
-            if "エビデンスが必要です" in evidence_needed:
-                with st.spinner("検証中..."):
-                    queries = chain_1.invoke({"text": text_1})
-                    queries = queries.split('\n')
-                    st.session_state.queries = [remove_quotes_if_needed(q.split('. ')[1]) for q in queries if q]
-                    st.session_state.evidence = None  # 新しい検証時に以前の結果をクリア
-                    st.session_state.result = None
-            else:
-                st.write(evidence_needed)
-                st.session_state.queries = []
-                st.session_state.evidence = None
+            with st.spinner("検証中..."):
+                queries = chain.invoke({"text": text_1})
+                queries = queries.split('\n')
+                st.session_state.queries = [remove_quotes(q.split('. ')[1]) for q in queries if q]
+                st.session_state.evidence = None  # 新しい検証時に以前の結果をクリア
                 st.session_state.result = None
 
     if st.session_state.queries:
