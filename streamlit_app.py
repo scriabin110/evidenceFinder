@@ -54,8 +54,10 @@ output_parser = StrOutputParser()
 chain_0 = prompt_0 | llm | output_parser
 chain_1 = prompt_1 | llm | output_parser
 
-#def remove_quotes(string):
-#    return string.replace('"', '')
+def remove_quotes_if_needed(string):
+    if string.startswith('"') and string.endswith('"'):
+        return string[1:-1]
+    return string
 
 search = GoogleSearchAPIWrapper()
 
@@ -169,7 +171,7 @@ def main():
                 with st.spinner("検証中..."):
                     queries = chain_1.invoke({"text": text_1})
                     queries = queries.split('\n')
-#                    st.session_state.queries = [remove_quotes(q.split('. ')[1]) for q in queries if q]
+                    st.session_state.queries = [remove_quotes_if_needed(q.split('. ')[1]) for q in queries if q]
                     st.session_state.evidence = None  # 新しい検証時に以前の結果をクリア
                     st.session_state.result = None
             else:
