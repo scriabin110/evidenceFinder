@@ -201,7 +201,7 @@ def main():
                     for line in lines:
                         if line.strip():
                             key, value = line.split(':', 1)
-                            st.write(f"**{key.strip()}:** {value.strip()}")
+                            st.write(f"**{key.strip()}:** \n{value.strip()}")
 
     if button_disabled:
         st.warning("テキストは200文字以内にしてください。")
