@@ -12,7 +12,7 @@ os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_
 os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
 os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
 
-llm = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=None)
+llm = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=3000)
 
 template_1 = """
 # 命令書
