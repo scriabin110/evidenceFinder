@@ -7,6 +7,9 @@ from langchain_core.tools import Tool
 import os
 import requests
 from bs4 import BeautifulSoup
+import asyncio
+import aiohttp
+from concurrent.futures import ThreadPoolExecutor
 
 os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_KEY'
 os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
@@ -80,24 +83,21 @@ prompt_2 = ChatPromptTemplate.from_messages([
     ("user", template_2)
 ])
 
-def get_h_tags(url):
+async def get_h_tags_async(url):
     try:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        h_tags = soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])
-        return [tag.get_text() for tag in h_tags]
-    except:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as response:
+                html = await response.text()
+                soup = BeautifulSoup(html, 'html.parser')
+                h_tags = soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])
+                return [f"{tag.name}: {tag.get_text()}" for tag in h_tags]
+    except Exception as e:
+        st.error(f"Error fetching h-tags from {url}: {str(e)}")
         return []
 
-def get_h_tags_with_content(url):
-    try:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        soup = BeautifulSoup(response.content.decode("utf-8", "ignore"), "html.parser")  #240731追加
-        h_tags = soup.find_all(['h2', 'h3', 'h4', 'h5', 'h6'])
-        return [f"{tag.name}: {tag.get_text()}" for tag in h_tags]
-    except:
-        return []
+async def process_evidence(evidence):
+    tasks = [get_h_tags_async(result['link']) for result in evidence]
+    return await asyncio.gather(*tasks)
 
 template_3 = """
 # 命令書
@@ -149,11 +149,14 @@ def main():
         if text_1:
             st.session_state.text_1 = text_1
             with st.spinner("検証中..."):
-                queries = chain.invoke({"text": text_1})
-                queries = queries.split('\n')
-                st.session_state.queries = [remove_quotes(q.split('. ')[1]) for q in queries if q]
-                st.session_state.evidence = None  # 新しい検証時に以前の結果をクリア
-                st.session_state.result = None
+                try:
+                    queries = chain.invoke({"text": text_1})
+                    queries = queries.split('\n')
+                    st.session_state.queries = [remove_quotes(q.split('. ')[1]) for q in queries if q]
+                    st.session_state.evidence = None  # 新しい検証時に以前の結果をクリア
+                    st.session_state.result = None
+                except Exception as e:
+                    st.error(f"Error generating queries: {str(e)}")
 
     if st.session_state.queries:
         st.write("生成された検索クエリ:")
@@ -165,8 +168,11 @@ def main():
         if selected_query != st.session_state.get('last_selected_query'):
             st.session_state.last_selected_query = selected_query
             with st.spinner("検索中..."):
-                st.session_state.evidence = top5_results(selected_query)
-                st.session_state.result = None  # 新しい検索時に以前の結果をクリア
+                try:
+                    st.session_state.evidence = top5_results(selected_query)
+                    st.session_state.result = None  # 新しい検索時に以前の結果をクリア
+                except Exception as e:
+                    st.error(f"Error performing search: {str(e)}")
 
         if st.session_state.evidence:
             snippets_with_links = [f"{result['snippet']} \n(URL: {result['link']})" for result in st.session_state.evidence]
@@ -176,34 +182,40 @@ def main():
                 st.write(f"{i}. {snippet_with_link}")
                 st.write("")
 
-            top_url = st.session_state.evidence[0]['link']
-            h_tags = get_h_tags(top_url)
-            h_tags_str = "\n".join(h_tags)
-
             if st.session_state.result is None:
                 with st.spinner("結果を生成中..."):
-                    chain_2 = prompt_2 | llm | output_parser
-                    st.session_state.result = chain_2.invoke({"text": text_1, "snippets": snippets_with_links, "h_tags": h_tags_str})
+                    try:
+                        chain_2 = prompt_2 | llm | output_parser
+                        st.session_state.result = chain_2.invoke({"text": text_1, "snippets": snippets_with_links, "h_tags": ""}, timeout=30)
+                    except Exception as e:
+                        st.error(f"Error generating result: {str(e)}")
 
             if st.session_state.result:
                 st.write("検証結果:", st.session_state.result)
 
                 # 重要なURLとhタグの分析
                 with st.spinner("重要なエビデンスを分析中..."):
-                    chain_3 = prompt_3 | llm | output_parser
-                    all_h_tags = {result['link']: get_h_tags_with_content(result['link']) for result in st.session_state.evidence}
-                    important_evidence = chain_3.invoke({
-                        "result": st.session_state.result,
-                        "snippets": snippets_with_links,
-                        "h_tags": all_h_tags
-                    })
-                    
-                    st.write("重要なエビデンス:")
-                    lines = important_evidence.split('\n')
-                    for line in lines:
-                        if line.strip():
-                            key, value = line.split(':', 1)
-                            st.write(f"**{key.strip()}:** \n{value.strip()}")
+                    try:
+                        # 非同期でh-tagを取得
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        all_h_tags = loop.run_until_complete(process_evidence(st.session_state.evidence))
+                        
+                        chain_3 = prompt_3 | llm | output_parser
+                        important_evidence = chain_3.invoke({
+                            "result": st.session_state.result,
+                            "snippets": snippets_with_links,
+                            "h_tags": all_h_tags
+                        }, timeout=30)
+                        
+                        st.write("重要なエビデンス:")
+                        lines = important_evidence.split('\n')
+                        for line in lines:
+                            if line.strip():
+                                key, value = line.split(':', 1)
+                                st.write(f"**{key.strip()}:** \n{value.strip()}")
+                    except Exception as e:
+                        st.error(f"Error analyzing important evidence: {str(e)}")
 
     if button_disabled:
         st.warning("テキストは200文字以内にしてください。")

@@ -1,7 +1,9 @@
 # evidenceFinder
+
 Find evidence and check accuracy of text information using Google Search.
 
 # 環境構築
+
 - perplexityAIのコレクション
 https://www.perplexity.ai/collections/240718-evidencefinder-hT9oOlr0TIqGwOR4SoAFkQ
 
