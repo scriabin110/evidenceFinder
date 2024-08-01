@@ -12,7 +12,9 @@ os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_
 os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
 os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
 
-llm = ChatOpenAI(model_name="gpt-4", temperature=0.75)
+llm_1 = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=None, timeout=None, max_retries=2)
+llm_2 = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=None, timeout=None, max_retries=2)
+llm_3 = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=None, timeout=None, max_retries=2)
 
 template_1 = """
 # 命令書
@@ -37,7 +39,7 @@ prompt_1 = ChatPromptTemplate.from_messages([
 ])
 
 output_parser = StrOutputParser()
-chain = prompt_1 | llm | output_parser
+chain = prompt_1 | llm_1 | output_parser
 
 def remove_quotes(string):
     return string.replace('"', '')
@@ -182,7 +184,7 @@ def main():
 
             if st.session_state.result is None:
                 with st.spinner("結果を生成中..."):
-                    chain_2 = prompt_2 | llm | output_parser
+                    chain_2 = prompt_2 | llm_2 | output_parser
                     st.session_state.result = chain_2.invoke({"text": text_1, "snippets": snippets_with_links, "h_tags": h_tags_str})
 
             if st.session_state.result:
@@ -190,7 +192,7 @@ def main():
 
                 # 重要なURLとhタグの分析
                 with st.spinner("重要なエビデンスを分析中..."):
-                    chain_3 = prompt_3 | llm | output_parser
+                    chain_3 = prompt_3 | llm_3 | output_parser
                     all_h_tags = {result['link']: get_h_tags_with_content(result['link']) for result in st.session_state.evidence}
                     important_evidence = chain_3.invoke({
                         "result": st.session_state.result,
