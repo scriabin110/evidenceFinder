@@ -95,7 +95,8 @@ def get_h_tags(url):
 def get_h_tags_with_content(url):
     try:
         response = requests.get(url)
-        soup = BeautifulSoup(response.content.decode("utf-8", "ignore"), "html.parser")
+        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.content.decode("utf-8", "ignore"), "html.parser")  #240731追加
         h_tags = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
         return [f"{tag.name}: {tag.get_text()}" for tag in h_tags]
     except:
