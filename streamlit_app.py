@@ -7,10 +7,11 @@ from langchain_core.tools import Tool
 import os
 import requests
 from bs4 import BeautifulSoup
+import time
 
-os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']    #'YOUR_OPENAI_API_KEY'
-os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']    #'YOUR_CSE_ID'
-os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']    #'YOUR_GOOGLE_API_KEY'
+os.environ["OPENAI_API_KEY"] = st.secrets['openAI_api_id']
+os.environ["GOOGLE_CSE_ID"] = st.secrets['cse_id']
+os.environ["GOOGLE_API_KEY"] = st.secrets['Google_api_key']
 
 llm_1 = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=None, timeout=None, max_retries=2)
 llm_2 = ChatOpenAI(model_name="gpt-4", temperature=0.75, max_tokens=None, timeout=None, max_retries=2)
@@ -94,8 +95,7 @@ def get_h_tags(url):
 def get_h_tags_with_content(url):
     try:
         response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        soup = BeautifulSoup(response.content.decode("utf-8", "ignore"), "html.parser")  #240731追加
+        soup = BeautifulSoup(response.content.decode("utf-8", "ignore"), "html.parser")
         h_tags = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
         return [f"{tag.name}: {tag.get_text()}" for tag in h_tags]
     except:
@@ -132,7 +132,6 @@ prompt_3 = ChatPromptTemplate.from_messages([
 def main():
     st.title("エビデンス検証アプリ")
 
-    # セッション状態の初期化
     if 'text_1' not in st.session_state:
         st.session_state.text_1 = ""
     if 'queries' not in st.session_state:
@@ -154,7 +153,7 @@ def main():
                 queries = chain.invoke({"text": text_1})
                 queries = queries.split('\n')
                 st.session_state.queries = [remove_quotes(q.split('. ')[1]) for q in queries if q]
-                st.session_state.evidence = None  # 新しい検証時に以前の結果をクリア
+                st.session_state.evidence = None
                 st.session_state.result = None
 
     if st.session_state.queries:
@@ -168,7 +167,7 @@ def main():
             st.session_state.last_selected_query = selected_query
             with st.spinner("検索中..."):
                 st.session_state.evidence = top5_results(selected_query)
-                st.session_state.result = None  # 新しい検索時に以前の結果をクリア
+                st.session_state.result = None
 
         if st.session_state.evidence:
             snippets_with_links = [f"{result['snippet']} \n(URL: {result['link']})" for result in st.session_state.evidence]
@@ -190,10 +189,13 @@ def main():
             if st.session_state.result:
                 st.write("検証結果:", st.session_state.result)
 
-                # 重要なURLとhタグの分析
                 with st.spinner("重要なエビデンスを分析中..."):
                     chain_3 = prompt_3 | llm_3 | output_parser
                     all_h_tags = {result['link']: get_h_tags_with_content(result['link']) for result in st.session_state.evidence}
+                    
+                    # ここでtime.sleep()を追加
+                    time.sleep(2)
+                    
                     important_evidence = chain_3.invoke({
                         "result": st.session_state.result,
                         "snippets": snippets_with_links,
